@@ -1,0 +1,83 @@
+---
+  title: "testing R Markdown bis bis"
+  author: "Marco Baldo"
+  output: 
+   pdf_document: default
+  date: 2023/06/14
+---
+
+# Say Hello to markdown
+
+
+Markdown is an **easy to use** format for writing reports. It resembles what you naturally write every time you compose an email. In fact, you may have already used markdown *without realizing it*. These websites all rely on markdown formatting.
+In case word is not working use *tinytex::install_tinytex()* before to start.
+
+* [Github](www.github.com)
+* [StackOverflow](www.stackoverflow.com)
+* [Reddit](www.reddit.com)
+
+eval = TRUE evaluate the script
+
+echo = FALSE means only the result shown
+
+message = FALSE remove the messages from the report
+
+warnings = FALSE remove the warning messages
+
+Here’s some code
+
+```{r setup, include=FALSE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(eval=FALSE, echo = TRUE, message = FALSE, warning = FALSE)
+
+library(ggplot2)
+library(raster)
+library(fields)
+library(tidyr)
+library(cowplot)
+library(dplyr)
+library(purrr)
+
+getwd()
+```
+
+```{r, eval = TRUE}
+a <- 5
+b <- 3
+c <- a+b
+
+c
+```
+
+
+```{r, eval = FALSE}
+a <- 5
+b <- 3
+c <- a+b
+
+c
+```
+
+```{r, echo = FALSE}
+a <- 5
+b <- 3
+c <- a+b
+
+c
+```
+
+```{r, eval = TRUE, echo = TRUE, message=FALSE, warning=FALSE}
+library(ggplot2)
+
+getwd()
+
+file<-"../../../AAAAA/bily_kriz_3km_n.annout" # ../../ is the code for search 
+                     # the file one or two or more step of the computer path
+a<-read.table(file,header=T)
+print(a)
+
+plot(a$year,a$totalc)
+
+ggplot(a, aes(year, totalc))+
+       geom_line(size=1.2, show.legend = F)
+
+```

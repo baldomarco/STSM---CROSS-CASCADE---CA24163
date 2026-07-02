@@ -1,0 +1,108 @@
+---
+title: "STSM_report_01"
+author: "Marco Baldo"
+date: "2026-06-20"
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,    # hide code
+  message = FALSE, # hide messages
+  warning = FALSE  # hide warnings
+)
+```
+
+# Data Initial Rendering & Saving
+
+path: C:\P\DMP_CROSS_CASCADE\03_rawdata\02_process_storage
+
+- Step 01: Load and prepare the Field Inventory Data 2015_2019 **FID_2015_2019** and 2022 **FID_2022** complete with species names converted, dead and alive trees and their condition = cond (if snag, broken, dry etc.).
+
+1a. split the dead and alive trees in 0 - 1 dead/alive 2015_2019 all in the same data frame **FID_2015_2019_D**
+
+1b. split the dead and alive trees in 0 - 1 dead/alive 2022 into the same data frame **FID_2022_D**
+
+1c. Create six separate df 2015 - 2019 & alive - dead
+**FID_2015** all trees but 2015
+**FID_2019** all trees but 2019
+**FID_2015_alive** only alive 2015
+**FID_2015_dead** only dead 2015
+**FID_2019_alive**
+**FID_2019_dead**
+
+1d. 2022 alive / dead (same logic as above)
+**FID_2022_alive**
+**FID_2022_dead**
+
+1e. Check the whole n. of tree presence in 2015-2019 and the n. removal - regrowth (tree different between years).
+
+1f. Inspect and create a df of trees (removal - regrowth) comparable between them. **problem_cases**
+
+1g. Create a data frame to make estensive comparison analysis: time-series modeling - mixed models - growth/mortality transitions analysis. **FID_2015_2019_long**
+
+1h. FID 2015 vs 2019 differences | FID 2015 vs 2022 differences | FID 2019 vs 2022 differences
+    The 2022 plots are always present in 2015 & 2019 dataset
+    
+
+- Step 02: Save all the data frame separetly and in .csv & .rds (rds is the format to get injected in R directly as dataframe in the environment)
+
+
+- Step 03: Extract the ALS based data from the GIS shape file - Table of attribute. NB: here the volume isn't present. Only Important information column structure for init table in iLand: x y species dbh height **ALS_2015**
+
+3a. Check the species names and figure it out the corrispondence of not consisten names
+
+3b. Make a consistent species name, including dead trees where needed, using the reference of the GEE article based species names: <https://gee-bialowiezamaps.projects.earthengine.app/view/bialowiezamapviewer>
+
+reference: Lisiewicz, M., Kamińska, A., Kraszewski, B., Kuberski, Ł., Pilch, K., Stereńczak, K. 2025. Comprehensive mapping of individual living and dead tree species using leaf-on and leaf-off ALS and CIR data in a complex temperate forest. Forestry: An International Journal of Forest Research. <https://doi.org/10.1093/forestry/cpaf007>
+
+3c. # fix ALS plot IDs to match FID format (KS001). contingency variables column names between FID and ALS using the FID: **ALS_2015**
+
+3d. Check and SAVE MATCHING CONTROL PLOTS FILE between FID 2015 and ALS 2015: **matching_plots.txt**, **FID_not_in_ALS.txt**, **ALS_not_in_FID.txt**.
+
+3e. Let's filter the data frame for FID 2015 - FID 2019 - ALS 2015 in the way to keep only **matching plots 668**
+
+**FID_match** 2015 only
+**ALS_match** 2015
+
+3f. Define common plot set across ALL datasets ALS 2015 - FID 2015 and 2019 **valid_plots**
+
+3g. filter ALL datasets to same plots and create the df: **FID_2015_clean**, **FID_2019_clean**, **ALS_2015_clean**. 
+
+**THIS ARE THE IMPORTANT DATAFRAMES**
+
+3h. Let's create different data frame for alive and dead trees as in FID and for ALS 2015 same plots
+**ALS_clean_alive**
+**ALS_clean_dead**
+**FID_2015_clean_alive**
+**FIS_2015_clean_dead**
+**FID_2019_clean_alive**
+**FIS_2019_clean_dead**
+
+3i. Save in csv and rds all the clean data set and ALS based dataset including the full
+
+- Step 4: Global Test
+
+4a. Test if is true that the 2015 2019 and ALS 2015 dataset have the same plot ids. Make a random check o then number of trees in some selected plots.
+
+4b. Import the FID plots information table with age and dominant species and edit the df according to species names and number of matching plots **FID_2015_2019_Info_clean**
+
+4c. TEST OF PLOTS NUMBERS AND TREE COUNTS **summary_plot**, **plot_count_check**
+
+```{r FID data, echo=FALSE, message=FALSE, warning=FALSE}
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
