@@ -38,7 +38,7 @@ FID_2022 <- read_excel(
   sheet = "Sheet1")
 
 head(FID_2022)
-unique(FID_2022$plotid)
+unique(FID_2022$plot_id)
 
 #-------------------------------------------------------------------------------
 # Convert the species names in scientific names
