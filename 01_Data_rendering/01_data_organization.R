@@ -38,7 +38,7 @@ FID_2022 <- read_excel(
   sheet = "Sheet1")
 
 head(FID_2022)
-unique(FID_2022$plot_id)
+unique(FID_2022$plotid)
 
 #-------------------------------------------------------------------------------
 # Convert the species names in scientific names
@@ -63,6 +63,7 @@ species_ref <- tribble(
   "LP", "Tilia cordata", "tico",
   "LPD", "Tilia petiolaris", "tipe",
   "OL", "Alnus glutinosa", "algl",
+  "SL", "Prunus spinosa", "prse",
   "OS", "Populus tremula", "potr",
   "SO", "Pinus sylvestris", "pisy",
   "SW", "Picea abies", "piab",
@@ -70,6 +71,7 @@ species_ref <- tribble(
   "WBI", "Salix alba", "saal",
   "WBK", "Salix fragilis", "safr",
   "WBW", "Salix viminalis", "savi",
+  "WIP", "Salix caprea", "saca",
   "WZ", "Ulmus", "ulgl",
   "WZG", "Ulmus", "ulgl",
   "WZP", "Ulmus carpinifolia", "ulca",

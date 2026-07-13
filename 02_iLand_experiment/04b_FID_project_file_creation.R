@@ -1,0 +1,415 @@
+# this scripts aims to produce different variants of project files.
+
+
+rm(list=ls()) 
+#Marco Baldo, 2024.05.02
+#install.packages("xml2")
+#install.packages("methods")
+
+library(RSQLite)
+library(dplyr)
+library(xml2)
+library(methods)
+library(readxl)
+library(writexl)
+library(stringr)
+
+# Import the climate database)
+#-------------------------------------------------------------------------
+# Connect to the SQLite database
+con <- dbConnect(SQLite(), dbname = "C:/iLand/2026/Bialowieza/Project_folder_iLand2.1/database/Bialowieza_climate.sqlite")
+
+# Get the list of tables in the database
+tables <- dbListTables(con)
+
+# Create an empty dataframe to store the results
+results <- data.frame(dataset = character(),
+                      avg_precip_spring = numeric(),
+                      avg_precip_summer = numeric(),
+                      avg_precip_autumn = numeric(),
+                      avg_precip_winter = numeric(),
+                      avg_temp_spring = numeric(),
+                      avg_temp_summer = numeric(),
+                      avg_temp_autumn = numeric(),
+                      avg_temp_winter = numeric())
+
+# Loop through each table and import the dataset
+for (table_name in tables) {
+  # Construct the SQL query to select all data from the current table
+  query <- paste("SELECT * FROM", table_name)
+  
+  # Read the data from the database into a data frame
+  data <- dbGetQuery(con, query)
+  
+  # Filter the data for the time period 1961-1990
+  data_period <- data[data$year >= 2015 & data$year <= 2045, ]
+  
+  # Calculate the sum of seasonal precipitation
+  precip_spring <- sum(data_period$prec[data_period$month %in% c(3, 4, 5)]) / length(unique(data_period$year))
+  precip_summer <- sum(data_period$prec[data_period$month %in% c(6, 7, 8)]) / length(unique(data_period$year))
+  precip_autumn <- sum(data_period$prec[data_period$month %in% c(9, 10, 11)]) / length(unique(data_period$year))
+  precip_winter <- sum(data_period$prec[data_period$month %in% c(12, 1, 2)]) / length(unique(data_period$year))
+  
+  # Calculate the average temperature per season
+  temp_spring <- mean((data$min_temp[data$month %in% c(3, 4, 5)] + data$max_temp[data$month %in% c(3, 4, 5)])/2)
+  temp_summer <- mean((data$min_temp[data$month %in% c(6, 7, 8)] + data$max_temp[data$month %in% c(6, 7, 8)])/2)
+  temp_autumn <- mean((data$min_temp[data$month %in% c(9, 10, 11)] + data$max_temp[data$month %in% c(9, 10, 11)])/2)
+  temp_winter <- mean((data$min_temp[data$month %in% c(12, 1, 2)] + data$max_temp[data$month %in% c(12, 1, 2)])/2)
+  
+  # Add the results to the dataframe
+  results <- rbind(results, data.frame(dataset = table_name,
+                                       avg_precip_spring = precip_spring,
+                                       avg_precip_summer = precip_summer,
+                                       avg_precip_autumn = precip_autumn,
+                                       avg_precip_winter = precip_winter,
+                                       avg_temp_spring = temp_spring,
+                                       avg_temp_summer = temp_summer,
+                                       avg_temp_autumn = temp_autumn,
+                                       avg_temp_winter = temp_winter))
+}
+
+# Reset row names
+row.names(results) <- NULL
+
+# Close the database connection
+dbDisconnect(con)
+
+
+# Specify the file path for the CSV file
+csv_file <- "C:/iLand/2026/Bialowieza/Project_folder_iLand2.1/database/climate_data_synthesis.csv"
+
+# Write the results dataframe to a CSV file
+write.csv(results, file = csv_file, row.names = FALSE)
+
+# Print a message indicating that the CSV file has been saved
+cat("CSV file saved:", csv_file, "\n")
+
+#-------------------------------------------------------------------------------
+# --- Import the deadwood pools ----
+#-------------------------------------------------------------------------------
+#DWP<- read_excel("C:/iLand/2023/CZ_JH1_C_pools_99_plots.xlsx")  # IMPORT DW POOLS PREVIOUSLY COMPILED
+
+#DWP <- DWP %>% rename(swdC = swdC_kgha,
+#                      swdCount = count,
+#                      youngRefractoryC = yrC_kgha)
+
+#DWP <- DWP %>% mutate(swdCount = swdCount *4,
+#                      otherC = (swdC*0.3)*2 )
+
+#-------------------------------------------------------------------------------
+# --- Get list of env tables in the database
+#-------------------------------------------------------------------------------
+#------  PLOT ID  -----
+
+# --- Load data ---
+FID_2015_clean_alive <- readRDS("C:/P/DMP_CROSS_CASCADE/03_rawdata/02_process_storage/FID_order_rds/FID_2015_clean_alive.rds")
+FID_2015_clean_alive <- FID_2015_clean_alive %>% tidyr::drop_na(dbh)
+
+
+# --- Convert iLand Species ----
+sp <- unique(FID_2015_clean_alive$sp_name)
+#write.csv(sp, file.path("C:/P/DMP_CROSS_CASCADE/03_rawdata/Species conversion.csv"), row.names = FALSE)
+sp_con <- read.csv("C:/P/DMP_CROSS_CASCADE/03_rawdata/Species conversion.csv")
+
+sp_NA<-subset(FID_2015_clean_alive, is.na(FID_2015_clean_alive$sp_name)) 
+sp_NA
+
+# First conversion based on the species not present in iLand sp parameters db                    
+FID_2015_clean_alive <- FID_2015_clean_alive %>%
+  mutate(species = recode(
+    species,
+    "tipe" = "tipl",
+    "saal" = "saca",
+    "safr" = "saca",
+    "savi" = "saca",
+    "masi" = "prse",
+    "pyco" = "prse",
+    "ulla" = "ulgl",
+    "ulca" = "ulgl",
+    .default = species
+  ))
+
+# Replace the NA
+FID_2015_clean_alive <- FID_2015_clean_alive %>%
+  mutate(
+    species = case_when(
+      is.na(species) & sp_ibl == "SL"  ~ "prse",
+      is.na(species) & sp_ibl == "WIP" ~ "saca",
+      TRUE ~ species
+    )
+  )
+
+plot <- unique(FID_2015_clean_alive$plotid)
+
+#---- Species proportion -----
+sp_prop <- read_excel("C:/P/DMP_CROSS_CASCADE/03_rawdata/02_process_storage/Species_proportion_FID_2015/sp_prop_plot_ba_FID_2015.xlsx")
+
+seed_string <- sp_prop %>%
+  group_by(plot) %>%
+  summarise(
+    externalSeedBackgroundInput =
+      paste(
+        species,
+        sprintf("%.5f", SpeciesProportion),
+        collapse = " "),
+    .groups = "drop"
+  )
+
+# plot <- unique(as.character(na.omit(FID_2015_clean_alive$plotid)))
+#--------------------------------------
+# this work like I read in one project file which I prepared for this "modification".
+# And I made modification based on the table what I create in the first part of the script.
+# Second part goes on the records of the table and made the project files based on the values inside the table.
+
+
+#--- READ IN A BASIC PROJECT FILE ----
+basic<-"C:/iLand/2026/Bialowieza/project_files/RUN_L4XL4_06_test_oldgrowth_v1.xml"
+data<- read_xml(basic)
+d<-as_list(data)
+
+print(d$project$system$database$climate[[1]])
+
+
+#------------------------------------- *****
+
+project.files.to.put<-"C:/iLand/2026/Bialowieza/project_files/New folder/"
+
+#------------------------------------------------------
+#  CREATE THE VARIANTS:
+
+# We have climate, browsing and winds
+
+#climates<-c("refclim","HadGEM2_CCLM_rcp45","HadGEM2_CCLM_rcp85",
+#           "CNRM_ALADIN53_rcp45","CNRM_ALADIN53_rcp85",
+#          "EC-EARTH_RACMO22E_r1_rcp45","EC-EARTH_RACMO22E_r1_rcp85",
+#         "MPI_CCLM_rcp45","MPI_CCLM_rcp85",
+#        "NCC_HIRHAM5_rcp45","NCC_HIRHAM5_rcp85")
+
+# we have 50 wind variants
+# winds<-c("w1", "w2", "w3")
+# browsings<-c(0,0.5,1,2)
+
+#---- ROOT WITHIN PROJECT ----
+homeroot<-"C:/iLand/2026/Bialowieza/Project_folder_iLand2.1/"     # this is the ssd disk, homeroot where the model is run and the outputs are produced
+
+ROOT<-"C:/iLand/2026/Bialowieza/Project_folder_iLand2.1/"         # this supposed to be the mounted disk
+
+env.root<-paste0(ROOT,"gis/env_table/")
+abe.root<-paste0(ROOT,"abe/")
+climate.root<-paste0(ROOT,"database/")
+init<-paste0(ROOT,"init/")
+gis.root<-paste0(ROOT,"gis/")
+spec.root<-paste0(ROOT,"database/")
+
+#env.file<-paste0(env.root,"Environment_",plot,".txt")  # Set the climate
+#env.file
+# Generate init_name by removing first 10 characters from plot variable
+init_name <- paste0(substr(plot, 0, nchar(plot)), "_init.txt")
+init_name
+stand.grid<-paste0("gis/plot_work.asc")
+env.grid<-paste0("gis/environment_grid_plot.asc")
+#env.file<-paste0("gis/Environment_110.txt") 
+
+outputfoldername<-paste0("output")
+
+# Get list of simulation folders
+# simulation_folders <- list.files("gis/", pattern = "^[0-9]+$", full.names = TRUE)
+
+spec.file<-paste0('species_param_europe_allometry_20220603_CZ.sqlite')
+
+#init.file<-paste0(root,"init/")
+# ---- VARIABLE TABLE ----
+variants.table<-data.frame(#time.event.file=clim_name,
+  plot=plot,
+  mng.script=paste0(abe.root,"01_abe_bottoms_up_L1_10_unmanaged.js"), # Change here from abe.root to "abe/....js" if want to avoid the long path but work anyways. Same below with the csv
+  csv.file=paste0(abe.root,"CZ_stand_types.csv"),
+  salvaging=0.7,
+  stand.grid=stand.grid,
+  env.grid=env.grid,
+  #env.file=env.file, 
+  spec.file=spec.file,
+  home.root=homeroot,
+  output.foldername=outputfoldername,
+  init_file=paste0("init/",init_name)
+  #swdC = DWP$swdC,
+  #youngRefractoryC = DWP$youngRefractoryC,
+  #swdCount = DWP$swdCount,
+  #otherC = DWP$otherC
+)
+
+variants.table <- variants.table %>%left_join(seed_string, by = "plot")
+
+variants.table<-cbind(variants.table, project_file_name=paste0("Project_", plot, ".xml"))
+variants.table
+
+variants.table<-cbind(variants.table,output_file_name=paste0("DB_", plot, ".sqlite"))
+variants.table
+
+variants.table<-cbind(variants.table,log_file_name=paste0("log_", plot, ".txt"))
+variants.table
+
+
+write.csv(variants.table,paste0(ROOT,"project.files.to.put.csv"), quote=F, row.names = F)
+#write.csv(variants.table.all,"C:/Users/xzims001/Documents/PROJECT_FILES_WHAT_IF/spinup/Whatif_20200325.csv", quote=F, row.names = F)
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# now we have the plan, so lets create the project files:
+n<-length(variants.table[,1])
+
+# ---- CLIMATE SIMULATION TABLE ----
+#----------------------- REFLCIM!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# For the reference climate I want to have 300 years, but not repeating the same year after each other!
+library(markovchain)
+first30<-as.character(c(0:29))
+# transition matrix: each state can go to another state with probability 1/30
+tmatrix<-matrix(1/29, 30,30)
+for (dd in 1:30) {
+  tmatrix[dd,dd]<-0
+}
+
+# Markov chain
+chain <- new("markovchain", states = first30, transitionMatrix = tmatrix)
+# sample the Markov chain
+ll<-as.numeric(rmarkovchain(n = 400, chain))
+
+# this is the final order (ll):
+refrandomCLIM<-c(0,1,2,3,4,5,6,7,8,9,10,11,1,15,27,29,9,7,5,25,11,3,15,12,28,19,24,14,24,29,21,5,29,26,1,19,2,13,6,23,12,21,25,29,16,22,10,19,11,2,9,22,2,7,1,7,2,22,10,15,6,7,10,14,2,24,11,16,27,14,24,29,28,4,9,16,12,0,28,29,16,25,18,9,29,23,14,1,16,27,29,17,4,25,5,21,10,18,13,18,26,9,15,1,5,26,18,6,18,1,15,7,27,7,13,26,14,24,9,4,22,24,6,16,14,4,27,23,19,2,10,9,12,16,17,6,13,22,27,6,28,3,25,22,28,5,15,23,19,24,22,4,7,16,28,26,27,11,17,9,24,17,25,27,16,15,25,21,18,9,22,16,13,15,22,29,18,26,18,23,13,4,22,5,28,17,15,10,18,3,22,7,6,0,12,4,27,20,15,29,15,17,21,6,17,15,2,17,16,27,13,18,3,5,2,4,23,24,19,3,26,24,9,17,13,29,4,1,13,10,21,6,28,16,24,20,22,17,28,5,12,29,13,9,12,21,12,24,26,20,8,7,17,25,29,3,9,14,11,15,7,14,8,22,6,16,29,6,4,18,26,20,8,4,25,10,1,9,7,15,16,3,26,3,2,17,16,25,22,18,0,10,1,22,10,16,17,12,21,13,1,22,21,22,11,26,3,6,5,7,1, 9 ,22 ,14 ,27 ,22 ,19 , 7  ,1  ,2 ,26 , 1 ,16 ,13 , 2 ,28 ,23 ,20 , 5 ,17 ,22 ,20 ,19 , 1 , 0 ,21, 12 ,29 , 5 ,10 , 5 ,17 ,21 ,27 ,22 ,15 ,22 ,19  ,9 , 4 ,22 ,21 ,17 , 4 , 1 ,22 ,25 ,16  ,4 ,10,27 ,15 ,25 ,20 ,27 ,23  ,0 ,29 ,18, 21  ,1 ,20  ,4  ,7  ,6 ,18  ,1  ,2 ,23 ,11 ,13 ,29 ,24 ,11 ,17, 15  ,1  ,7, 11,  3, 23, 24, 14, 22,  2, 12,  5,  9, 23, 22,  0, 20, 11, 13, 20, 14, 16,  6, 24,12) 
+#refrandomCLIM <- as.numeric(rmarkovchain(n = 400, chain))
+
+
+#----------------------- SCENARIO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+# for climate change we need 2021-2100: 80year, than replicate the last 25 year randomly. to have 300y: 
+
+last25<-as.character(c(55:79))
+# transition matrix: each state can go to another state with probability 1/30
+tmatrix<-matrix(1/24, 25,25)
+for (dd in 1:25) {
+  tmatrix[dd,dd]<-0
+}
+
+chain <- new("markovchain", states = last25, transitionMatrix = tmatrix)
+# sample the Markov chain
+ll2<-as.numeric(rmarkovchain(n = 220, chain))
+
+
+# this is the final order:
+last220<-c(77,73,64,73,71,69,67,71,59,67,65,71,62,76,68,59,67,74,55,60,74,62,57,60,55,68,59,74,75,68,62,60,56,62,79,75,79,70,76,77,71,79,69,58,77,56,64,58,76,77,68,57,70,74,63,62,65,56,79,63,57,62,68,71,63,62,61,77,55,57,55,61,78,60,71,56,63,64,63,69,74,65,55,74,59,76,78,58,78,64,63,66,70,65,72,63,59,79,68,69,63,76,62,60,71,67,76,79,74,61,60,79,77,70,74,59,57,61,78,67,74,70,56,60,66,67,59,61,65,68,69,58,72,58,69,76,71,67,71,75,65,79,74,75,71,72,59,69,73,62,69,77,76,77,76,55,79,70,61,79,66,60,78,72,68,65,75,66,57,78,77,64,63,69,67,70,72,57,71,70,72,58,60,63,79,66,78,66,58,65,73,71,73,55,62,61,57,64,76,75,62,55,79,68,71,69,57,76,71,61,65,74,72,76,58,59,58,77,59,62)
+
+scenrandomCLIM<-c(0:79,last220)
+
+n<-nrow(variants.table)
+for (i in 1:n) {
+  
+  case<-variants.table[i,]
+  print(case)  
+  
+  #d$project$system$path$home[[1]]<-case$home.root
+  d$project$system$path$output[[1]]<-case$output.foldername
+  d$project$system$database$out[[1]]<-case$output_file_name
+  #d$project$system$database$climate[[1]]<-case$climfile
+  
+  # LOG FILE
+  d$project$system$logging$logFile[[1]] <- paste0("log/", case$log_file_name)
+  
+  # TIME EVENTS - WIND ACTIVATION
+  d$project$model$world$timeEventsEnabled[[1]]<-"false"
+  
+  # Activate in case you have wind event and put the name of the txt wind event file at the place of time.event.file
+  #d$project$model$world$timeEventsFile[[1]]<-case$time.event.file 
+  
+  # CLIMATE (in case you will have climate change scenarios)
+  # year numbering start at 0
+  
+  # Add in case of climate change
+  # d$project$model$climate$randomSamplingEnabled[[1]]<-"true"
+  # d$project$model$climate$randomSamplingList[[1]]<-paste0(as.character(scenrandomCLIM), collapse=' ')
+  # d$project$model$climate$batchYears[[1]]<-"80"                     #2021-2100
+  
+  #  if (case$climfile=="E:/2023/20230801_browsing_revision/browsing_esperiment/database/CZ_region_1961-2018_20211208f.sqlite"){
+  #  d$project$model$climate$randomSamplingList[[1]]<-paste0(as.character(refrandomCLIM), collapse=' ')
+  #  d$project$model$climate$batchYears[[1]]<-"30" 
+  #  }
+  
+  case$climfile=="C:/iLand/2026/Bialowieza/Project_folder_iLand2.1/database/Bialowieza_climate.sqlite"
+  d$project$model$climate$randomSamplingList[[1]]<-paste0(as.character(refrandomCLIM), collapse=' ')
+  d$project$model$climate$batchYears[[1]]<-"30" 
+  
+  # CO2
+  d$project$model$species$CO2Response$compensationPoint[[1]] <- 80
+  d$project$model$species$CO2Response$beta0[[1]] <- 0.15
+  
+  # species parameter file
+  d$project$system$database$`in`[[1]]<-"species_param_kostelec_allometry_20220603_CZ.sqlite"
+  
+  # gis tables
+  
+  # enviroment file and grid
+  d$project$model$world$environmentGrid[[1]]<-case$env.grid
+  #d$project$model$world$environmentFile[[1]]<-case$env.file
+  
+  # stand grid
+  d$project$model$world$standGrid$fileName[[1]]<-case$stand.grid
+  
+  # Init trees input table with age
+  d$project$model$initialization$file[[1]]<-case$init_file
+  
+  #species proportion
+  #d$project$model$settings$seedDispersal$externalSeedBackgroundInput[[1]] <- case$externalSeedBackgroundInput
+  #  piab, algl, pisy, bepe, bepu, cabe, tipl, quro, frex, saca, potr, acpl, ulgl, soau, prse, qupe, acps
+  
+  #--- init C input tables -----
+  #d$project$model$site$youngRefractoryC[[1]]<-case$youngRefractoryC
+  
+  # Deadwood pools
+  #d$project$model$initialization$snags$swdC[[1]]<- case$swdC
+  
+  #d$project$model$initialization$snags$swdC[[1]]<- case$swdC
+  #d$project$model$initialization$snags$swdCount[[1]]<-case$swdCount
+  #d$project$model$initialization$snags$otherC[[1]]<-case$otherC
+  #d$project$model$initialization$snags$otherAbovegroundFraction[[1]]<- 0.3
+  
+  # MANAGEMENT
+  d$project$model$management$enabled[[1]]<-"true"
+  d$project$model$management$file[[1]]<-""
+  d$project$model$management$abeEnabled[[1]]<-"true"
+  d$project$model$management$abe$file[[1]]<-case$mng.script 
+  d$project$model$management$abe$agentDataFile[[1]]<-case$csv.file
+  
+  
+  # Browsing
+  d$project$model$settings$browsing$enabled[[1]]<-"true"
+  d$project$model$settings$browsing$browsingPressure[[1]]<- 0
+  
+  
+  # Barkbeetle module
+  d$project$modules$barkbeetle$enabled[[1]]<-"true"
+  d$project$modules$barkbeetle$backgroundInfestationProbability[[1]]<- "0.000685"
+  d$project$modules$barkbeetle$stormInfestationProbability[[1]]<-"0.05"
+  d$project$modules$barkbeetle$baseWinterMortality[[1]]<-"0.4"
+  d$project$modules$barkbeetle$cohortsPerGeneration[[1]]<-"20"
+  d$project$modules$barkbeetle$cohortsPerSisterbrood[[1]]<-"30"
+  d$project$modules$barkbeetle$deadTreeSelectivity[[1]]<-"1"
+  d$project$modules$barkbeetle$initialInfestationProbability[[1]]<- "0.000015"  
+  d$project$modules$barkbeetle$referenceClimate$tableName[[1]]<-  "pol_175"              #case$plot
+  #   
+  
+  # SALVAGE
+  d$project$user$salvage$remove[[1]]<-case$salvaging   #---------------- FIXED NOW
+  
+  #---- Create XML document ----
+  p <- as_xml_document(d)
+  
+  # Generate a unique filename for this XML document
+  out <- paste0(project.files.to.put, case$project_file_name)
+  
+  # Write XML document to file
+  write_xml(p, out, option = "as_xml")
+  
+}     # close the loop of creating project files
+
+shell<-paste0(project.files.to.put,"Bialowieza_run_all.bat")
+write.table(paste0("ilandc.exe ", variants.table$project_file_name," 50"), shell, row.names = F,col.names = F,quote = F)
+
+

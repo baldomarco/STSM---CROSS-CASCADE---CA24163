@@ -16,7 +16,7 @@ library(dbscan)     # install.packages("dbscan") if needed
 #------------------------------------------------------------------------------
 # 0. Paths
 #------------------------------------------------------------------------------
-input_rds  <- "C:/iLand/20230901_Bottoms_Up/plot_init/R/stsm_roma/ALS_clean_alive.rds"
+input_rds  <- "C:/P/DMP_CROSS_CASCADE/03_rawdata/02_process_storage/FID_order_rds/ALS_clean_alive.rds"
 output_dir <- "C:/P/DMP_CROSS_CASCADE/03_rawdata/02_process_storage/"
 plot_dir   <- file.path(output_dir, "plots")
 

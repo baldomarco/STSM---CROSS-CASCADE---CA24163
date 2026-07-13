@@ -208,6 +208,8 @@ variants.table
 variants.table<-cbind(variants.table,output_file_name=paste0("DB_", plot, ".sqlite"))
 variants.table
 
+variants.table<-cbind(variants.table,log_file_name=paste0("log_", plot, ".txt"))
+variants.table
 
 
 write.csv(variants.table,paste0(ROOT,"project.files.to.put.csv"), quote=F, row.names = F)
@@ -235,8 +237,8 @@ chain <- new("markovchain", states = first30, transitionMatrix = tmatrix)
 ll<-as.numeric(rmarkovchain(n = 400, chain))
 
 # this is the final order (ll):
-#refrandomCLIM<-c(11,1,15,27,29,9,7,5,25,11,3,15,12,28,19,24,14,24,29,21,5,29,26,1,19,2,13,6,23,12,21,25,29,16,22,10,19,11,2,9,22,2,7,1,7,2,22,10,15,6,7,10,14,2,24,11,16,27,14,24,29,28,4,9,16,12,0,28,29,16,25,18,9,29,23,14,1,16,27,29,17,4,25,5,21,10,18,13,18,26,9,15,1,5,26,18,6,18,1,15,7,27,7,13,26,14,24,9,4,22,24,6,16,14,4,27,23,19,2,10,9,12,16,17,6,13,22,27,6,28,3,25,22,28,5,15,23,19,24,22,4,7,16,28,26,27,11,17,9,24,17,25,27,16,15,25,21,18,9,22,16,13,15,22,29,18,26,18,23,13,4,22,5,28,17,15,10,18,3,22,7,6,0,12,4,27,20,15,29,15,17,21,6,17,15,2,17,16,27,13,18,3,5,2,4,23,24,19,3,26,24,9,17,13,29,4,1,13,10,21,6,28,16,24,20,22,17,28,5,12,29,13,9,12,21,12,24,26,20,8,7,17,25,29,3,9,14,11,15,7,14,8,22,6,16,29,6,4,18,26,20,8,4,25,10,1,9,7,15,16,3,26,3,2,17,16,25,22,18,0,10,1,22,10,16,17,12,21,13,1,22,21,22,11,26,3,6,5,7,1, 9 ,22 ,14 ,27 ,22 ,19 , 7  ,1  ,2 ,26 , 1 ,16 ,13 , 2 ,28 ,23 ,20 , 5 ,17 ,22 ,20 ,19 , 1 , 0 ,21, 12 ,29 , 5 ,10 , 5 ,17 ,21 ,27 ,22 ,15 ,22 ,19  ,9 , 4 ,22 ,21 ,17 , 4 , 1 ,22 ,25 ,16  ,4 ,10,27 ,15 ,25 ,20 ,27 ,23  ,0 ,29 ,18, 21  ,1 ,20  ,4  ,7  ,6 ,18  ,1  ,2 ,23 ,11 ,13 ,29 ,24 ,11 ,17, 15  ,1  ,7, 11,  3, 23, 24, 14, 22,  2, 12,  5,  9, 23, 22,  0, 20, 11, 13, 20, 14, 16,  6, 24,12) 
-refrandomCLIM <- as.numeric(rmarkovchain(n = 400, chain))
+refrandomCLIM<-c(0,1,2,3,4,5,6,7,8,9,10,11,1,15,27,29,9,7,5,25,11,3,15,12,28,19,24,14,24,29,21,5,29,26,1,19,2,13,6,23,12,21,25,29,16,22,10,19,11,2,9,22,2,7,1,7,2,22,10,15,6,7,10,14,2,24,11,16,27,14,24,29,28,4,9,16,12,0,28,29,16,25,18,9,29,23,14,1,16,27,29,17,4,25,5,21,10,18,13,18,26,9,15,1,5,26,18,6,18,1,15,7,27,7,13,26,14,24,9,4,22,24,6,16,14,4,27,23,19,2,10,9,12,16,17,6,13,22,27,6,28,3,25,22,28,5,15,23,19,24,22,4,7,16,28,26,27,11,17,9,24,17,25,27,16,15,25,21,18,9,22,16,13,15,22,29,18,26,18,23,13,4,22,5,28,17,15,10,18,3,22,7,6,0,12,4,27,20,15,29,15,17,21,6,17,15,2,17,16,27,13,18,3,5,2,4,23,24,19,3,26,24,9,17,13,29,4,1,13,10,21,6,28,16,24,20,22,17,28,5,12,29,13,9,12,21,12,24,26,20,8,7,17,25,29,3,9,14,11,15,7,14,8,22,6,16,29,6,4,18,26,20,8,4,25,10,1,9,7,15,16,3,26,3,2,17,16,25,22,18,0,10,1,22,10,16,17,12,21,13,1,22,21,22,11,26,3,6,5,7,1, 9 ,22 ,14 ,27 ,22 ,19 , 7  ,1  ,2 ,26 , 1 ,16 ,13 , 2 ,28 ,23 ,20 , 5 ,17 ,22 ,20 ,19 , 1 , 0 ,21, 12 ,29 , 5 ,10 , 5 ,17 ,21 ,27 ,22 ,15 ,22 ,19  ,9 , 4 ,22 ,21 ,17 , 4 , 1 ,22 ,25 ,16  ,4 ,10,27 ,15 ,25 ,20 ,27 ,23  ,0 ,29 ,18, 21  ,1 ,20  ,4  ,7  ,6 ,18  ,1  ,2 ,23 ,11 ,13 ,29 ,24 ,11 ,17, 15  ,1  ,7, 11,  3, 23, 24, 14, 22,  2, 12,  5,  9, 23, 22,  0, 20, 11, 13, 20, 14, 16,  6, 24,12) 
+#refrandomCLIM <- as.numeric(rmarkovchain(n = 400, chain))
 
 
 #----------------------- SCENARIO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -271,7 +273,8 @@ for (i in 1:n) {
   d$project$system$database$out[[1]]<-case$output_file_name
   #d$project$system$database$climate[[1]]<-case$climfile
   
-  d$project$system$logging$logFile[[1]]<-paste0("log/",plot,"log.txt")
+  # LOG FILE
+  d$project$system$logging$logFile[[1]] <- paste0("log/", case$log_file_name)
   
   # TIME EVENTS
   d$project$model$world$timeEventsEnabled[[1]]<-"false"
@@ -316,7 +319,8 @@ for (i in 1:n) {
   d$project$model$initialization$file[[1]]<-case$init_file
   
   #species proportion
-  #d$project$model$settings$seedDispersal$externalSeedBackgroundInput[[1]] <- case$externalSeedBackgroundInput
+#  d$project$model$settings$seedDispersal$externalSeedBackgroundInput[[1]] <- case$externalSeedBackgroundInput
+  # piab, algl, bepe, acpl, potr, quro, tico, pisy, frex
   
   #--- init C input tables -----
   #d$project$model$site$youngRefractoryC[[1]]<-case$youngRefractoryC
@@ -338,8 +342,8 @@ for (i in 1:n) {
   
   
   # Browsing
-  d$project$model$settings$browsing$enabled[[1]]<-"false"
-  d$project$model$settings$browsing$browsingPressure[[1]]<- 0.8
+  d$project$model$settings$browsing$enabled[[1]]<-"true"
+  d$project$model$settings$browsing$browsingPressure[[1]]<- 0
   
   
   # Barkbeetle module
