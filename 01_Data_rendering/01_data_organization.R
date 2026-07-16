@@ -53,29 +53,29 @@ species_ref <- tribble(
   "DBB", "Quercus petraea", "qupe",
   "DBS", "Quercus robur", "quro",
   "GB", "Carpinus betulus", "cabe",
-  "GR", "Pyrus communis", "pyco",
-  "JB", "Malus silvestris", "masi",
+  "GR", "Pyrus communis", "prse",
+  "JB", "Malus silvestris", "prse",
   "JRZ", "Sorbus aucuparia", "soau",
   "JS", "Fraxinus excelsior", "frex",
   "JW", "Acer pseudoplatanus", "acps",
   "KLZ", "Acer platanoides", "acpl",
   "LESZCZ", "Corylus avellana", "coav",
   "LP", "Tilia cordata", "tico",
-  "LPD", "Tilia petiolaris", "tipe",
+  "LPD", "Tilia petiolaris", "tipl",
   "OL", "Alnus glutinosa", "algl",
   "SL", "Prunus spinosa", "prse",
   "OS", "Populus tremula", "potr",
   "SO", "Pinus sylvestris", "pisy",
   "SW", "Picea abies", "piab",
-  "WB", "Salix alba", "saal",
-  "WBI", "Salix alba", "saal",
-  "WBK", "Salix fragilis", "safr",
-  "WBW", "Salix viminalis", "savi",
+  "WB", "Salix alba", "saca",
+  "WBI", "Salix alba", "saca",
+  "WBK", "Salix fragilis", "saca",
+  "WBW", "Salix viminalis", "saca",
   "WIP", "Salix caprea", "saca",
   "WZ", "Ulmus", "ulgl",
   "WZG", "Ulmus", "ulgl",
-  "WZP", "Ulmus carpinifolia", "ulca",
-  "WZS", "Ulmus laevis", "ulla"
+  "WZP", "Ulmus carpinifolia", "ulgl",
+  "WZS", "Ulmus laevis", "ulgl"
 )
 
 # Rename and order the column for species names and iland codes 2015 - 2019
@@ -366,7 +366,7 @@ writeLines(als_not_fid, file.path(raw_process_data_path, "ALS_not_in_FID.txt"))
 
 
 #5------------------------------------------------------------------------------
-# Let's create different data frame for alive and dead trees as in FID
+# Let's create different data frame for alive and dead trees as in FID standard along field data and ALS in 2015 and corrected to the 2019 (exclude the dissapearing plots)
 
 # filter both datasets to matching the plots in 2015
 FID_match <- FID_2015 %>% filter(plotid %in% matching_ids)
@@ -401,7 +401,11 @@ FID_2015_clean_dead  <- FID_2015_clean %>% filter(dead == 1)
 FID_2019_clean_alive <- FID_2019_clean %>% filter(dead == 0)
 FID_2019_clean_dead  <- FID_2019_clean %>% filter(dead == 1)
 
-
+# FID 2022 -- separate valid set (subset of valid_plots due to plot mismatches)
+valid_plots_2022 <- intersect(valid_plots, unique(FID_2022_D$plotid))
+FID_2022_clean       <- FID_2022_D %>% filter(plotid %in% valid_plots_2022)
+FID_2022_clean_alive <- FID_2022_clean %>% filter(dead2022 == 0)
+FID_2022_clean_dead  <- FID_2022_clean %>% filter(dead2022 == 1)
 
 #6------------------------------------------------------------------------------
 # CSV exports
@@ -420,6 +424,10 @@ write.csv(FID_2019_clean_dead,  file.path(raw_process_data_path, "FID_2019_clean
 write.csv(ALS_clean_alive, file.path(raw_process_data_path, "ALS_clean_alive.csv"), row.names = FALSE)
 write.csv(ALS_clean_dead,  file.path(raw_process_data_path, "ALS_clean_dead.csv"), row.names = FALSE)
 
+write.csv(FID_2022_clean,       file.path(raw_process_data_path, "FID_2022_clean.csv"),       row.names = FALSE)
+write.csv(FID_2022_clean_alive, file.path(raw_process_data_path, "FID_2022_clean_alive.csv"), row.names = FALSE)
+write.csv(FID_2022_clean_dead,  file.path(raw_process_data_path, "FID_2022_clean_dead.csv"),  row.names = FALSE)
+
 # RDS exports
 saveRDS(ALS_2015, file.path(raw_process_data_path, "ALS_2015.rds"))
 
@@ -437,6 +445,10 @@ saveRDS(ALS_clean_alive, file.path(raw_process_data_path, "ALS_clean_alive.rds")
 saveRDS(ALS_clean_dead,  file.path(raw_process_data_path, "ALS_clean_dead.rds"))
 
 
+saveRDS(FID_2022_clean,       file.path(raw_process_data_path, "FID_2022_clean.rds"))
+saveRDS(FID_2022_clean_alive, file.path(raw_process_data_path, "FID_2022_clean_alive.rds"))
+saveRDS(FID_2022_clean_dead,  file.path(raw_process_data_path, "FID_2022_clean_dead.rds"))
+
 #7------------------------------------------------------------------------------
 # FINAL TEST TO SEE IF EVERYTHING IS FINE
 
@@ -450,6 +462,10 @@ setequal(unique(FID_2015_clean$plotid),
 setequal(unique(FID_2019_clean$plotid),
          unique(ALS_clean$plotid))
 
+# FID 2022 coverage check
+length(valid_plots_2022)                      # how many of valid_plots are in 2022 & 2015-2019 FID-ALS
+setdiff(valid_plots, valid_plots_2022)        # plots missing in 2022 but are in 2022 & 2015-2019 FID-ALS
+
 
 # TEST 2 — random sample check - same plots exist everywhere
 set.seed(123)
@@ -459,7 +475,7 @@ sample_plots %in% ALS_clean$plotid
 sample_plots %in% FID_2019_clean$plotid
 
 
-# !! TEST 3 — row-level consistency - counts per plot
+# !! TEST 3 — row-level consistency - trees counts per plot selected 
 test_counts <- data.frame(
   plotid = sample_plots,
   FID2015 = sapply(sample_plots, function(x) sum(FID_2015_clean$plotid == x)),
@@ -470,7 +486,11 @@ test_counts <- data.frame(
 test_counts
 
 
-
+# FID 2022 coverage of sample_plots (0 values are because not present the plot selected in 2022)
+data.frame(
+  plotid  = sample_plots,
+  FID2022 = sapply(sample_plots, function(x) sum(FID_2022_clean$plotid == x, na.rm = TRUE))
+)
 
 #-------------------------------------------------------------------------------
 ###   FINAL PART - MERGING DATA FRAMES      ##############
@@ -507,7 +527,8 @@ data.frame(
               "FID_2015_clean_alive", "FID_2015_clean_dead",
               "FID_2019_clean_alive", "FID_2019_clean_dead",
               "ALS_clean_alive", "ALS_clean_dead",
-              "FID_2015_2019_Info_clean"),
+              "FID_2015_2019_Info_clean","FID_2022_clean", 
+              "FID_2022_clean_alive", "FID_2022_clean_dead"),
   n_unique_plots = c(
     length(unique(FID_2015_clean$plotid)),
     length(unique(FID_2019_clean$plotid)),
@@ -518,20 +539,31 @@ data.frame(
     length(unique(FID_2019_clean_dead$plotid)),
     length(unique(ALS_clean_alive$plotid)),
     length(unique(ALS_clean_dead$plotid)),
-    length(unique(FID_2015_2019_Info_clean$plotid))
+    length(unique(FID_2015_2019_Info_clean$plotid)),
+    length(unique(FID_2022_clean$plotid)),
+    length(unique(FID_2022_clean_alive$plotid)),
+    length(unique(FID_2022_clean_dead$plotid))
   )
 )
 
 # 2) per-plot tree counts (example: FID 2015)
 table(FID_2015_clean$plotid)
+table(FID_2022_clean$plotid)
 
 # 3) per-plot tree counts comparison
 plot_count_check <- data.frame(
   plotid = sort(unique(FID_2015_clean$plotid)),
+  ALS     = as.integer(table(ALS_clean$plotid)),
   FID2015 = as.integer(table(FID_2015_clean$plotid)),
-  FID2019 = as.integer(table(FID_2019_clean$plotid)),
-  ALS     = as.integer(table(ALS_clean$plotid))
+  FID2019 = as.integer(table(FID_2019_clean$plotid))
 )
+
+plot_count_check
+
+
+# FID 2022 - Add a column with 2022 where NA are missing plots
+fid2022_counts <- table(FID_2022_clean$plotid)
+plot_count_check$FID2022 <- as.integer(fid2022_counts[plot_count_check$plotid])
 
 plot_count_check
 
@@ -579,11 +611,11 @@ write.csv(plot_summary,
 #-------------------------------------------------------------------------------
 # save per-plot counts table
 write.csv(plot_count_check,
-          file.path(out, "plot_count_check.csv"),
+          file.path(out, "plot_count_check_2015_2019_2022.csv"),
           row.names = FALSE)
 
 saveRDS(plot_count_check,
-        file.path(out, "plot_count_check.rds"))
+        file.path(out, "plot_count_check_2015_2019_2022.rds"))
 
 
 #9imp---------------------------------------------------------------------------

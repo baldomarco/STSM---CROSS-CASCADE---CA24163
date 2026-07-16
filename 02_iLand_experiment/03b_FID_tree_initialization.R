@@ -1,9 +1,9 @@
-#                                       Dr. Marco Baldo, MSc
-#                                11/06/2026  CZU and SAS - CROSS-CASCADE COST Action CA22136
+#                           Dr. Marco Baldo, MSc
+#           11/06/2026  CZU and SAS - CROSS-CASCADE COST Action CA22136
 #
-#            Replicates FID 2015 circular 500m2 plots to 1ha (100x100m) squares assuming
-#            homogeneous forest structure, then writes iLand tree init tables.
-#            Adapted from 03_tree_initialization.R + _TreeReplicationForData.R
+#   Replicates FID 2015 circular 500m2 plots to 1ha (100x100m) squares assuming
+#       homogeneous forest structure, then writes iLand tree init tables.
+#       Adapted from 03_tree_initialization.R + _TreeReplicationForData.R
 
 rm(list=ls()) 
 
@@ -12,12 +12,48 @@ library(sf)
 library(tidyr)
 library(writexl)
 
+#===============================================================================
 # --- Load data ---
+#===============================================================================
 FID_2015_clean_alive <- readRDS("C:/iLand/20230901_Bottoms_Up/plot_init/R/stsm_roma/FID_2015_clean_alive.rds")
-FID_2015_clean_alive <- FID_2015_clean_alive %>% tidyr::drop_na(dbh)
+
+# Check NAs in single tree coordinates and species name
+na_check <- FID_2015_clean_alive %>%
+  summarise(
+    na_x       = sum(is.na(x)),
+    na_y       = sum(is.na(y)),
+    na_species = sum(is.na(species))
+  )
+na_check
+
+# Species missing - Just to know where because later we will fill the appropriate species name
+FID_2015_clean_alive %>% filter(is.na(species)) %>% select(plotid, treeid, sp_ibl, sp_name, species)
+
+# Test to see the NA in DBH & H and H within the tree init source data. 
+# This is important to avoid errors in the simulation
+n_before <- nrow(FID_2015_clean_alive)
+na_dbh   <- sum(is.na(FID_2015_clean_alive$dbh))
+na_h     <- sum(is.na(FID_2015_clean_alive$h))
+
+na_dbh_trees <- FID_2015_clean_alive %>% filter(is.na(dbh)) %>% select(plotid, treeid)
+na_h_trees   <- FID_2015_clean_alive %>% filter(is.na(h))   %>% select(plotid, treeid)
+
+table(na_dbh_trees$plotid)
+table(na_h_trees$plotid)
 
 
+# Drop NA in DBH
+FID_2015_clean_alive <- FID_2015_clean_alive %>% tidyr::drop_na(dbh, h)
+
+message(sprintf("Removed %d NA dbh, %d NA h out of %d total rows (%.1f%% / %.1f%%)",
+                na_dbh, na_h, n_before,
+                100 * na_dbh / n_before,
+                100 * na_h   / n_before))
+
+
+#===============================================================================
 # --- Convert iLand Species ----
+#===============================================================================
 sp <- unique(FID_2015_clean_alive$sp_name)
 #write.csv(sp, file.path("C:/P/DMP_CROSS_CASCADE/03_rawdata/Species conversion.csv"), row.names = FALSE)
 sp_con <- read.csv("C:/P/DMP_CROSS_CASCADE/03_rawdata/Species conversion.csv")
@@ -126,11 +162,11 @@ for (plot in unique_plots) {
 
 
 # --- Verification plot for one example plot ---
-example_plot <- one_ha_list[[unique_plots[240]]]
+example_plot <- one_ha_list[[unique_plots[230]]]
 ggplot2::ggplot(example_plot, ggplot2::aes(x = x, y = y, color = Source)) +
   ggplot2::geom_point(ggplot2::aes(size = dbh), alpha = 0.7) +
   ggplot2::coord_fixed(ratio = 1, xlim = c(0, 100), ylim = c(0, 100)) +
-  ggplot2::labs(title = paste("Simulated 1ha plot -", unique_plots[240])) +
+  ggplot2::labs(title = paste("Simulated 1ha plot -", unique_plots[230])) +
   ggplot2::theme_bw()
 
 #-------------------------------------------------------------------------------
