@@ -1,5 +1,5 @@
 # STSM---CROSS-CASCADE---CA24163
- Multi-temporal ALS-based initialization and validation of the iLand forest dynamics model under drought and bark beetle disturbances  
+ Multi-temporal ALS-based initialization and validation of the iLand forest dynamics model under drought and bark beetle disturbances  (https://crosscascade.eu/news/stsm-czu-marco)
 
 The script pipeline for this analysis is still under editing and development. It will be finalized based on the related article linked with the MSc. Marco Baldo's CA24163 Short Term Scientific Mission article: 
 
