@@ -16,3 +16,5 @@ https://www.sciencedirect.com/science/article/pii/S0303243420301665
 https://zenodo.org/records/6559267
 
 Czech University of Life Sciences Prague, Technical University of Zvolen and Slovack Academy of Sciences.
+
+To use the code properly and cite them please contact the authors.
